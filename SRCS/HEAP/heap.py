@@ -56,4 +56,4 @@ class Heap(ABC, Generic[T]):
     def _swap(self, i:int, j:int):
         a = self._data[i]
         self._data[i] = self._data[j]
-        self._data[j] = a
+        self._data[j] = ad
