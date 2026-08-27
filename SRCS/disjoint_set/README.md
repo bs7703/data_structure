@@ -53,3 +53,22 @@ Union-set의 가장 기본단위는 값에 해당하는 저장체(store)와 기�
 이때 `Identity`가 비어있는경우 인자차원에서 초기화대신 타입검사기에서 명확성을위해 블록내부에서 `None`시 할당방식.
 
 또한 `Storage`는 실제로 `Find`, `Union`을 구현차원의 Level에 맞는 조건을 만족할수있는 프로토콜로 맞춰 자격을 제한.
+
+ ### union의 invariant 조건
+
+ ### 1. Union-Find의 연산 대상은 Storage에 등록된 원소로 제한한다.(기본 전제)
+ ### 2. Find 및 Union에 전달되는 원소는 반드시 Storage에 존재한다고 가정한다. (1에따른 당연한귀결)
+ ###    따라서 Storage 조회 결과가 존재하지 않는 경우는 정상적인 연산 범위에 포함하지 않는다. 
+ ### 3. Store가 비어 있는 경우 등록된 원소가 존재하지 않으므로 (1에따른 당연한귀결)
+ ###    유효한 Find 및 Union 연산의 대상이 존재하지 않는다.
+
+
+### 5.Union-set이 최상위 단위면 그 하위의 Storage 표현을 ParentStorage와 GroupStorage로 나눔.
+### 하나는 Group ID인 K를 이용하여 각 원소의 소속 그룹을 직접 표현하고, 반대로 ParentStorage는 각 원소가 부모를 가리키는 관계를 이용하여 가상의 트리 구조를 표현한다.
+### 마찬가지로 Store는 추상클래스 단계의 구성으로, 하위의 GroupStore는 가장 기본적인 틀인 속성 Storage, IdentityOfT, IdentityOfK와 함수 get_group, merge_group을 최소 단위로 가진다.
+### 반면 ParentStore는 K를 별도로 두지 않고 원소 T 자체를 parent 및 representative로 사용하므로 Generic[T]만으로 구성할 수 있으며, 추가적으로 Storage, IdentityOfT, GetGroupPolicy, UnionPolicy, SetParent를 가진다. 여기서 get_group은 parent를 따라가 최종 root를 반환하고, merge_group은 두 root를 결합하며, set_parent는 실제 parent 관계를 변경하는 역할을 담당한다.
+
+### 6. 실제 ListBased 저장소는 선택한 구체적인 데이터 표현에 맞춰 구현을 닫는다.
+### ListBasedGroupStore는 list[tuple[T,K]]와 같이 실제 저장 형식을 명시하고, 해당 표현에 맞는 get_group과 merge_group을 각각 하나의 구체적인 동작으로 구현하여 상위 GroupStore의 계약을 만족시킨다.
+### 반면 ListBasedParentStore는 list[tuple[T,T]]와 같이 parent 관계를 리스트로 표현하며, Union에서는 DEFAULT, RANK, SIZE, Find에서는 기본 탐색과 PATH_COMPRESSION과 같이 여러 전략이 존재할 수 있으므로 이를 Policy로 분리한다.
+### 이때 구체적인 List 표현에 종속된 공통 구현은 util 함수로 작성하고, Enum 또는 flag로 선택된 정책과 partial을 이용해 storage, metadata, identity 등의 구현 세부 인자를 사전에 결합한다. 그 결과 상위 추상화 계층에서는 get_group(x), merge_group(a,b), set_parent(x,parent)와 같이 고정된 callable 계약만 사용하면서도, 실제 List 구현에서는 필요한 전략을 독립적으로 선택하고 조합할 수 있도록 한다.
